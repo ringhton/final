@@ -1,0 +1,76 @@
+services:
+  fluentd:
+    build: ./fluentd
+    links:
+      - "elasticsearch"
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    deploy:
+      mode: global
+    depends_on:
+      - elasticsearch
+    networks:
+      net: {}
+
+  elasticsearch:
+    image: elasticsearch:7.6.2
+#    volumes:
+#      - type: bind
+#        source: /gvolume/elastic
+#        target: /var/lib/elasticsearch 
+#      - elastic:/var/lib/elasticsearch
+    environment:
+      - discovery.type=single-node
+      - node.name=es01
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTIC_PASSWORD=DockerRocks!
+#    deploy:
+#      placement:
+#       constraints:
+#          - node.role == manager
+#      replicas: 3
+    ports:
+      - "9200:9200"
+    networks:
+      net: {}
+
+  kibana:
+    image: kibana:7.6.2
+    environment:
+      - "ELASTICSEARCH_URL=http://elasticsearch:9200"
+      - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+      - ELASTICSEARCH_USERNAME=rebrainme
+      - ELASTICSEARCH_PASSWORD=DockerRocks!
+    links:
+      - "elasticsearch"
+    ports:
+      - "5601:5601"
+#    deploy:
+#      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik-public"
+        - "traefik.http.routers.kibana.entrypoints=http"
+        - "traefik.http.routers.kibana.rule=HostRegexp(`kibana.{host:.+}.nip.io`)"
+        - "traefik.http.services.kibana-service.loadbalancer.server.port=5601"
+        - "traefik.http.middlewares.kibana-auth.basicauth.users=rebrainme:$$apr1$$M2y3w41L$$XejqYC2itrGuUIXwDCInf."
+        - "traefik.http.routers.kibana.middlewares=kibana-auth"
+#      placement:
+#        constraints:
+#          - node.role == manager
+    depends_on:
+      - elasticsearch
+    networks:
+      net: {}
+
+networks:
+  net:
+#    external:
+    name: traefik-public
+
+#volumes:
+#  elastic:
+#    driver: glusterfs
+#    name: "gfs/elastic"
+
