@@ -23,17 +23,13 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: mysql.access
-#    deploy:
-#      placement:
-#        constraints:
-#          - node.role == manager
     networks:
-      net: {}
+      - traefik-public
+#      net: {}
 
 ### app
   app:
     build: ./speed
-#    image: app:latest
     volumes:
       - ./speed/docker/servers.json:/servers.json
     environment:
@@ -52,11 +48,6 @@ services:
       - mysql
 #    ports:
 #      - "80:80"
-#      - "9000:9000"
-#    deploy:
-#      placement:
-#        constraints:
-#          - node.role == manager
 #    links:
 #      - fluentd
     logging:
@@ -65,30 +56,15 @@ services:
         fluentd-address: localhost:24224
         tag: speedtest.access
     networks:
-      net: {}
+      - traefik-public
 
 ### php-fpm
   nginx:
     image: "nginx:alpine"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-#      - ./speedtest:/speedtest
-#      - ./speedtest/docker/entrypoint-nginx.sh:/entrypoint.sh
-#    command: ["sh","/entrypoint.sh"]
-#    environment:
-#      db_type: ${db_type}
-#      MODE: ${MODE}
-#      TELEMETRY: ${TLM}
-#      ENABLE_ID_OBFUSCATION: ${EIO}
-#      REDACT_IP_ADDRESSES: ${RIA}
-#      MYSQL_USER: ${MYSQL_USER}
-#      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-#      MYSQL_DATABASE: ${MYSQL_DATABASE}
-#      PASSWORD: ${stats_password}
-    ports:
-      - "80:80"
-    expose:
-      - 80
+#    ports:
+#      - "80:80"
 #    links:
 #      - fluentd
     logging:
@@ -98,28 +74,23 @@ services:
         tag: nginx.access
     depends_on:
       - app
+      - traefik
 #    deploy:
-#      placement:
-#        constraints:
-#          - node.role == manager
-#      labels:
-#        - "traefik.enable=true"
-#        - "traefik.docker.network=traefik-public"
-#        - "traefik.http.routers.nginx.entrypoints=http"
-#        - "traefik.http.routers.nginx.rule=HostRegexp(`speedtest.{host:.+}.nip.io`)"
-#        - "traefik.http.services.nginx-service.loadbalancer.server.port=80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.nginx.entrypoints=http"
+      - "traefik.http.routers.nginx.rule=HostRegexp(`app.{host:.+}.nip.io`)"
+      - "traefik.http.services.nginx-service.loadbalancer.server.port=80"
     networks:
-      net: {}
-#      - net_vot_nginx
-#      - net_db_vot
+      - traefik-public
 
   traefik:
     image: "traefik:v2.11"
-#    command: --api.insecure=true --api.dashboard --entrypoints.web.address=:5601 --entrypoints.http.address=:80 --providers.docker --providers.docker.swarmMode
     command: --api.insecure=true --api.dashboard -entrypoints.http.address=:80 --providers.docker --providers.docker.swarmMode
     ports:
 #      - "5601:5601"
-#      - "80:80"
+      - "80:80"
       - "8080:8080"
 #    links:
 #      - fluentd
@@ -129,23 +100,18 @@ services:
         fluentd-address: localhost:24224
         tag: traefik.access
 #    deploy:
-#      placement:
-#        constraints:
-#          - node.role == manager
-#      labels:
-#        - "traefik.enable=true"
-#        - "traefik.docker.network=traefik-public"
-#        - "traefik.http.routers.traefik.rule=Host(`traefik.nip.io`)"
-#        - "traefik.http.routers.traefik.service=api@internal"
-#        - "traefik.http.services.traefik-service.loadbalancer.server.port=888"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.nip.io`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.services.traefik-service.loadbalancer.server.port=888"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
-      net: {}
+      - traefik-public
 
 networks:
-  net:
-    external:
-      name: traefik-public
-#  net_vot_nginx:
-#  net_db_vot:
+  traefik-public:
+    external: true
