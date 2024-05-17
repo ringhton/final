@@ -3,11 +3,13 @@ services:
     build: ./fluentd
     links:
       - "elasticsearch"
+    volumes:
+      - fluentd/conf/fluent.conf:/fluentd/etc/fluent.conf
     ports:
       - "24224:24224"
       - "24224:24224/udp"
-    deploy:
-      mode: global
+#    deploy:
+#      mode: global
     depends_on:
       - elasticsearch
     networks:
@@ -49,13 +51,13 @@ services:
       - "5601:5601"
 #    deploy:
 #      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=traefik-public"
-        - "traefik.http.routers.kibana.entrypoints=http"
-        - "traefik.http.routers.kibana.rule=HostRegexp(`kibana.{host:.+}.nip.io`)"
-        - "traefik.http.services.kibana-service.loadbalancer.server.port=5601"
-        - "traefik.http.middlewares.kibana-auth.basicauth.users=rebrainme:$$apr1$$M2y3w41L$$XejqYC2itrGuUIXwDCInf."
-        - "traefik.http.routers.kibana.middlewares=kibana-auth"
+#        - "traefik.enable=true"
+#        - "traefik.docker.network=traefik-public"
+#        - "traefik.http.routers.kibana.entrypoints=http"
+#        - "traefik.http.routers.kibana.rule=HostRegexp(`kibana.{host:.+}.nip.io`)"
+#        - "traefik.http.services.kibana-service.loadbalancer.server.port=5601"
+#        - "traefik.http.middlewares.kibana-auth.basicauth.users=rebrainme:$$apr1$$M2y3w41L$$XejqYC2itrGuUIXwDCInf."
+#        - "traefik.http.routers.kibana.middlewares=kibana-auth"
 #      placement:
 #        constraints:
 #          - node.role == manager
@@ -66,8 +68,8 @@ services:
 
 networks:
   net:
-#    external:
-    name: traefik-public
+    external:
+      name: traefik-public
 
 #volumes:
 #  elastic:
